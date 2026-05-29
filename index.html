@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ПОТОК — Пополнение Alipay</title>
+<meta name="description" content="Мгновенное пополнение Alipay. Юани на вашем счёту за 15 минут.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+:root{
+  --bg:#080B0F;
+  --bg2:#0E1217;
+  --bg3:#141920;
+  --line:#1E2530;
+  --line2:#2A3340;
+  --text:#F0F4FF;
+  --muted:#6B7A94;
+  --muted2:#8A9BB8;
+  --lime:#C8FF00;
+  --lime2:#A8D900;
+  --red:#FF3B30;
+  --mono:'DM Mono',monospace;
+  --display:'Syne',sans-serif;
+  --body:'DM Sans',sans-serif;
+}
+body{font-family:var(--body);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+
+/* CURSOR DOT */
+.cursor{position:fixed;width:8px;height:8px;background:var(--lime);border-radius:50%;pointer-events:none;z-index:9999;transition:transform .15s;mix-blend-mode:difference}
+
+/* NOISE OVERLAY */
+body::before{content:'';position:fixed;inset:0;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");pointer-events:none;z-index:1}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 2.5rem;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:rgba(8,11,15,.85);backdrop-filter:blur(20px)}
+.nav-logo{font-family:var(--display);font-size:1.5rem;font-weight:900;letter-spacing:.05em;color:var(--lime)}
+.nav-tag{font-family:var(--mono);font-size:.7rem;color:var(--muted);letter-spacing:.05em}
+.nav-cta{background:var(--lime);color:#000;font-family:var(--mono);font-size:.72rem;font-weight:500;padding:.55rem 1.25rem;border-radius:4px;letter-spacing:.05em;transition:opacity .15s}
+.nav-cta:hover{opacity:.85}
+
+/* HERO */
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 420px;align-items:center;padding:8rem 2.5rem 4rem;gap:3rem;position:relative;border-bottom:1px solid var(--line)}
+.hero::after{content:'';position:absolute;top:20%;right:350px;width:500px;height:500px;background:radial-gradient(circle,rgba(200,255,0,.06) 0%,transparent 70%);pointer-events:none}
+
+.hero-left{position:relative;z-index:2}
+.hero-eyebrow{display:flex;align-items:center;gap:.75rem;margin-bottom:2rem}
+.hero-eyebrow span{font-family:var(--mono);font-size:.7rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.status-dot{width:6px;height:6px;background:var(--lime);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.hero h1{font-family:var(--display);font-size:clamp(3.5rem,6vw,6.5rem);font-weight:900;line-height:.95;letter-spacing:-.02em;margin-bottom:2rem}
+.hero h1 .line1{display:block;color:var(--text)}
+.hero h1 .line2{display:block;color:var(--lime);position:relative}
+.hero h1 .line3{display:block;color:var(--muted);font-size:.55em;font-weight:700;letter-spacing:.0em;margin-top:.3rem}
+
+.hero-desc{font-size:.95rem;color:var(--muted2);line-height:1.8;max-width:480px;margin-bottom:2.5rem;font-weight:300}
+
+.cta-group{display:flex;gap:1rem;align-items:center}
+.btn-lime{background:var(--lime);color:#000;padding:.85rem 2rem;border-radius:4px;font-family:var(--mono);font-size:.78rem;font-weight:500;letter-spacing:.05em;display:inline-flex;align-items:center;gap:.6rem;transition:all .15s}
+.btn-lime:hover{background:var(--lime2);transform:translateY(-1px)}
+.btn-ghost{border:1px solid var(--line2);color:var(--muted2);padding:.85rem 1.75rem;border-radius:4px;font-family:var(--mono);font-size:.78rem;letter-spacing:.05em;transition:border-color .15s}
+.btn-ghost:hover{border-color:var(--muted);color:var(--text)}
+
+/* TICKER */
+.ticker{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:.6rem 0;overflow:hidden;white-space:nowrap;margin-top:2.5rem}
+.ticker-inner{display:inline-flex;animation:scroll 18s linear infinite;gap:0}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.tick-item{font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:.07em;padding:0 2rem;display:inline-flex;align-items:center;gap:.75rem}
+.tick-item .sep{color:var(--line2)}
+.tick-item .val{color:var(--text)}
+.tick-item .up{color:var(--lime)}
+
+/* HERO RIGHT — TERMINAL CARD */
+.hero-right{position:relative;z-index:2}
+.terminal{background:var(--bg2);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-family:var(--mono)}
+.term-bar{background:var(--bg3);border-bottom:1px solid var(--line);padding:.7rem 1rem;display:flex;align-items:center;gap:.5rem}
+.term-dot{width:10px;height:10px;border-radius:50%}
+.term-bar span{font-size:.7rem;color:var(--muted);margin-left:.5rem;letter-spacing:.04em}
+.term-body{padding:1.5rem;font-size:.78rem;line-height:2}
+.t-dim{color:var(--muted)}
+.t-green{color:var(--lime)}
+.t-white{color:var(--text)}
+.t-cyan{color:#7DD3FC}
+.t-yellow{color:#FCD34D}
+.t-blink{animation:cur 1s step-end infinite}
+@keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
+.term-divider{border:none;border-top:1px solid var(--line);margin:.5rem 0}
+
+.side-stats{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.75rem}
+.side-stat{background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:1rem}
+.ss-num{font-family:var(--display);font-size:1.4rem;font-weight:900;color:var(--text)}
+.ss-lbl{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.05em;margin-top:.2rem}
+
+/* SECTION BASE */
+.section{max-width:1100px;margin:0 auto;padding:6rem 2.5rem}
+.sec-label{font-family:var(--mono);font-size:.68rem;color:var(--lime);letter-spacing:.15em;text-transform:uppercase;margin-bottom:1rem}
+.sec-h{font-family:var(--display);font-size:2.8rem;font-weight:900;line-height:1.05;letter-spacing:-.02em;margin-bottom:.75rem}
+.sec-sub{color:var(--muted2);font-size:.9rem;font-weight:300;margin-bottom:3.5rem;line-height:1.7}
+
+/* HOW — NUMBERED LIST */
+.how-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+.how-item{background:var(--bg);padding:2.5rem 2rem;position:relative;overflow:hidden;transition:background .2s}
+.how-item:hover{background:var(--bg2)}
+.how-num{font-family:var(--display);font-size:5rem;font-weight:900;color:var(--line2);line-height:1;margin-bottom:1.5rem;transition:color .2s}
+.how-item:hover .how-num{color:var(--lime)}
+.how-h{font-family:var(--display);font-size:1.1rem;font-weight:800;margin-bottom:.6rem}
+.how-p{font-size:.83rem;color:var(--muted);line-height:1.75;font-weight:300}
+
+/* WHY — BENTO */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:auto auto;gap:1px;background:var(--line);border:1px solid var(--line)}
+.bento-cell{background:var(--bg);padding:2rem;transition:background .2s}
+.bento-cell:hover{background:var(--bg2)}
+.bc-1{grid-column:span 3}
+.bc-2{grid-column:span 3}
+.bc-3{grid-column:span 2}
+.bc-4{grid-column:span 2}
+.bc-5{grid-column:span 2}
+.bc-ico{font-size:2rem;margin-bottom:1rem;display:block}
+.bc-h{font-family:var(--display);font-size:1.05rem;font-weight:800;margin-bottom:.5rem}
+.bc-p{font-size:.82rem;color:var(--muted);line-height:1.7;font-weight:300}
+.bc-big-num{font-family:var(--display);font-size:3.5rem;font-weight:900;color:var(--lime);line-height:1;margin-bottom:.5rem}
+
+/* WHO */
+.who-list{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+.who-item{background:var(--bg);padding:1.5rem 2rem;display:flex;align-items:center;gap:1.25rem;transition:background .2s}
+.who-item:hover{background:var(--bg2)}
+.who-ico{font-size:1.5rem;flex-shrink:0}
+.who-text{font-size:.88rem;color:var(--muted2);font-weight:400}
+
+/* CTA */
+.cta-section{padding:6rem 2.5rem;position:relative;overflow:hidden;border-top:1px solid var(--line)}
+.cta-section::before{content:'钱';position:absolute;font-family:var(--display);font-size:32rem;font-weight:900;color:rgba(200,255,0,.025);right:-4rem;top:50%;transform:translateY(-50%);line-height:1;pointer-events:none}
+.cta-inner{max-width:1100px;margin:0 auto;position:relative}
+.cta-h{font-family:var(--display);font-size:clamp(2.5rem,5vw,5rem);font-weight:900;line-height:1;letter-spacing:-.03em;margin-bottom:1.5rem}
+.cta-h em{font-style:normal;color:var(--lime);display:block}
+.cta-sub{color:var(--muted2);font-size:.95rem;font-weight:300;margin-bottom:3rem;max-width:480px;line-height:1.7}
+
+/* FOOTER */
+footer{border-top:1px solid var(--line);padding:2.5rem 2.5rem;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:start;gap:2rem}
+.foot-logo{font-family:var(--display);font-size:1.3rem;font-weight:900;color:var(--lime);letter-spacing:.05em;margin-bottom:.4rem}
+.foot-tag{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.07em}
+.foot-details{font-family:var(--mono);font-size:.68rem;color:var(--muted);line-height:2;letter-spacing:.02em}
+.foot-details a{color:var(--lime)}
+.foot-copy{font-family:var(--mono);font-size:.65rem;color:var(--muted);text-align:right;letter-spacing:.07em}
+
+/* FADE IN */
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-in.visible{opacity:1;transform:none}
+
+@media(max-width:900px){
+  nav{padding:0 1.5rem}
+  .hero{grid-template-columns:1fr;padding:7rem 1.5rem 4rem;min-height:auto}
+  .hero h1{font-size:3.2rem}
+  .hero-right{display:none}
+  .how-grid{grid-template-columns:1fr}
+  .bento{grid-template-columns:1fr 1fr}
+  .bc-1,.bc-2,.bc-3,.bc-4,.bc-5{grid-column:span 2}
+  .who-list{grid-template-columns:1fr}
+  footer{grid-template-columns:1fr;gap:1.5rem}
+  .foot-copy{text-align:left}
+  .section{padding:4rem 1.5rem}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+
+<nav>
+  <div class="nav-logo">ПОТОК</div>
+  <div class="nav-tag">// пополнение alipay</div>
+  <a href="https://t.me/O0rientExBot" class="nav-cta">НАПИСАТЬ →</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <span class="status-dot"></span>
+      <span>СИСТЕМА ОНЛАЙН — ВРЕМЯ ОТВЕТА &lt; 5 МИН</span>
+    </div>
+    <h1>
+      <span class="line1">ЮАНИ</span>
+      <span class="line2">НА ALIPAY</span>
+      <span class="line3">быстро / безопасно / прозрачно</span>
+    </h1>
+    <p class="hero-desc">
+      Переводим юани напрямую на ваш Alipay без китайских карт и посредников. Для бизнеса с Китаем, байеров и всех, кто работает с поставщиками.
+    </p>
+    <div class="cta-group">
+      <a href="https://t.me/O0rientExBot" class="btn-lime">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        ОТКРЫТЬ TELEGRAM
+      </a>
+      <a href="#how" class="btn-ghost">КАК ЭТО РАБОТАЕТ</a>
+    </div>
+
+    <div class="ticker">
+      <div class="ticker-inner">
+        <span class="tick-item"><span class="sep">◆</span> CNY/RUB <span class="val up">12.50 ↑</span></span>
+        <span class="tick-item"><span class="sep">◆</span> СРЕДНЕЕ ВРЕМЯ <span class="val">15 МИН</span></span>
+        <span class="tick-item"><span class="sep">◆</span> ПЕРЕВОДОВ СЕГОДНЯ <span class="val up">47</span></span>
+        <span class="tick-item"><span class="sep">◆</span> КЛИЕНТОВ <span class="val">3 157</span></span>
+        <span class="tick-item"><span class="sep">◆</span> РАБОТАЕМ С <span class="val">2016</span></span>
+        <span class="tick-item"><span class="sep">◆</span> CNY/RUB <span class="val up">12.50 ↑</span></span>
+        <span class="tick-item"><span class="sep">◆</span> СРЕДНЕЕ ВРЕМЯ <span class="val">15 МИН</span></span>
+        <span class="tick-item"><span class="sep">◆</span> ПЕРЕВОДОВ СЕГОДНЯ <span class="val up">47</span></span>
+        <span class="tick-item"><span class="sep">◆</span> КЛИЕНТОВ <span class="val">3 157</span></span>
+        <span class="tick-item"><span class="sep">◆</span> РАБОТАЕМ С <span class="val">2016</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#FF5F57"></div>
+        <div class="term-dot" style="background:#FEBC2E"></div>
+        <div class="term-dot" style="background:#28C840"></div>
+        <span>поток_transfer.sh</span>
+      </div>
+      <div class="term-body">
+        <div><span class="t-dim">$</span> <span class="t-green">поток</span> <span class="t-cyan">init-transfer</span></div>
+        <div><span class="t-dim">→ ввод суммы:</span> <span class="t-yellow">¥ 5,000</span></div>
+        <div><span class="t-dim">→ курс CNY/RUB:</span> <span class="t-white">12.50</span></div>
+        <div><span class="t-dim">→ итого к оплате:</span> <span class="t-white">62,500 ₽</span></div>
+        <div><span class="t-dim">→ комиссия:</span> <span class="t-green">0 ₽</span></div>
+        <hr class="term-divider">
+        <div><span class="t-dim">→ статус:</span> <span class="t-green">● processing</span></div>
+        <div><span class="t-dim">→ время:</span> <span class="t-cyan">~15 min</span></div>
+        <div><span class="t-dim">→ зачисление:</span> <span class="t-green">✓ confirmed</span></div>
+        <div style="margin-top:.5rem"><span class="t-dim">$</span> <span class="t-blink">█</span></div>
+      </div>
+    </div>
+    <div class="side-stats">
+      <div class="side-stat">
+        <div class="ss-num">9 386</div>
+        <div class="ss-lbl">ПЕРЕВОДОВ</div>
+      </div>
+      <div class="side-stat">
+        <div class="ss-num">15 мин</div>
+        <div class="ss-lbl">СРЕДНЕЕ</div>
+      </div>
+      <div class="side-stat">
+        <div class="ss-num">2016</div>
+        <div class="ss-lbl">НА РЫНКЕ С</div>
+      </div>
+      <div class="side-stat">
+        <div class="ss-num">24/7</div>
+        <div class="ss-lbl">ПОДДЕРЖКА</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section fade-in" id="how">
+  <div class="sec-label">// 01 — схема работы</div>
+  <div class="sec-h">Три шага</div>
+  <p class="sec-sub">От заявки до зачисления — не более 20 минут</p>
+  <div class="how-grid">
+    <div class="how-item">
+      <div class="how-num">01</div>
+      <div class="how-h">Оставьте заявку</div>
+      <p class="how-p">Напишите в Telegram. Укажите сумму и аккаунт Alipay. Ответим в течение 5 минут — без ботов и автоответчиков.</p>
+    </div>
+    <div class="how-item">
+      <div class="how-num">02</div>
+      <div class="how-h">Переведите рубли</div>
+      <p class="how-p">Согласуем актуальный курс. Принимаем оплату по СБП, картой или наличными. Никаких скрытых условий.</p>
+    </div>
+    <div class="how-item">
+      <div class="how-num">03</div>
+      <div class="how-h">Получите юани</div>
+      <p class="how-p">Средства поступают на Alipay за ~15 минут. Пришлём уведомление о зачислении сразу после перевода.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section fade-in" style="padding-top:0">
+  <div class="sec-label">// 02 — преимущества</div>
+  <div class="sec-h">Почему ПОТОК</div>
+  <p class="sec-sub">Работаем прозрачно с 2016 года</p>
+  <div class="bento">
+    <div class="bento-cell bc-1">
+      <div class="bc-big-num">15'</div>
+      <div class="bc-h">Среднее время зачисления</div>
+      <p class="bc-p">Без ручной обработки и многодневных ожиданий. Юани на счету, пока не остыл чай.</p>
+    </div>
+    <div class="bento-cell bc-2">
+      <span class="bc-ico">◎</span>
+      <div class="bc-h">Честный курс без скрытых комиссий</div>
+      <p class="bc-p">Озвучиваем финальную сумму до получения оплаты. То, что согласовали — то и получаете.</p>
+    </div>
+    <div class="bento-cell bc-3">
+      <span class="bc-ico">⊠</span>
+      <div class="bc-h">Конфиденциальность</div>
+      <p class="bc-p">Данные клиентов не передаются третьим лицам. Работаем через защищённые каналы.</p>
+    </div>
+    <div class="bento-cell bc-4">
+      <span class="bc-ico">◈</span>
+      <div class="bc-h">Поддержка 24/7</div>
+      <p class="bc-p">Живые люди без скриптов. Любой вопрос — просто напишите.</p>
+    </div>
+    <div class="bento-cell bc-5">
+      <span class="bc-ico">⊕</span>
+      <div class="bc-h">Без китайских карт</div>
+      <p class="bc-p">Не нужна карта UnionPay или счёт в китайском банке.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section fade-in" style="padding-top:0">
+  <div class="sec-label">// 03 — аудитория</div>
+  <div class="sec-h">Для кого</div>
+  <p class="sec-sub">Частные лица и бизнес любого масштаба</p>
+  <div class="who-list">
+    <div class="who-item"><span class="who-ico">🛍</span><span class="who-text">Покупателям на Taobao, Pinduoduo и 1688</span></div>
+    <div class="who-item"><span class="who-ico">🏭</span><span class="who-text">Компаниям, работающим с китайскими поставщиками</span></div>
+    <div class="who-item"><span class="who-ico">🌏</span><span class="who-text">Тем, кто живёт или ведёт дела в Китае</span></div>
+    <div class="who-item"><span class="who-ico">📱</span><span class="who-text">Всем, кому нужен стабильный доступ к Alipay</span></div>
+  </div>
+</section>
+
+<section class="cta-section fade-in">
+  <div class="cta-inner">
+    <div class="cta-h">Готовы<em>пополнить?</em></div>
+    <p class="cta-sub">Напишите прямо сейчас — ответим за несколько минут и поможем с любым вопросом.</p>
+    <a href="https://t.me/O0rientExBot" class="btn-lime" style="font-size:.82rem;padding:1rem 2.25rem">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      ОТКРЫТЬ TELEGRAM
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div>
+    <div class="foot-logo">ПОТОК</div>
+    <div class="foot-tag">// пополнение alipay для рф</div>
+  </div>
+  <div class="foot-details">
+    ООО «Триба» · ИНН 7813693650 · ОГРН 1267800017979<br>
+    197101, г. Санкт-Петербург, Дивенская ул., д. 3, литера Е, пом. 25/4<br>
+    Поддержка: <a href="https://t.me/O0rientExBot">@O0rientExBot</a>
+  </div>
+  <div class="foot-copy">
+    © 2026 ПОТОК<br>
+    ALL RIGHTS RESERVED
+  </div>
+</footer>
+
+<script>
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX - 4 + 'px';
+  cursor.style.top = e.clientY - 4 + 'px';
+});
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible') });
+}, {threshold: 0.1});
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
